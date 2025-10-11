@@ -1,2 +1,12 @@
-env
+.env
 .venv/
+
+__pycache__/
+.DS_Store
+.vscode
+.pytest_cache
+.ruff_cache
+.gitignore
+.gitignore
+venv/
+
