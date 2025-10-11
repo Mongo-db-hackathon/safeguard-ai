@@ -27,7 +27,7 @@ VOYAGE_EMBED_MODEL = os.getenv("VOYAGE_EMBED_MODEL", "voyage-3")
 
 
 
-tx_col = db[FRAME_INTELLIGENCE_METADATA]
+tx_col = db[TRANSCRIPT_COLL]
 
 
 
@@ -86,10 +86,7 @@ def embed_text(text: str):
 import os
 from typing import List, Dict
 
-def ingest_transcripts(video_path: str, video_id: str = None, video_name: str = None) -> int:
-    """
-    Ingest transcripts with video identification support
-    """
+def ingest_transcripts(video_path: str) -> int:
     segs = transcribe_with_fireworks(video_path)
     # Normalize shape just in case
     if isinstance(segs, dict) and "segments" in segs:
@@ -116,7 +113,7 @@ def ingest_transcripts(video_path: str, video_id: str = None, video_name: str = 
             dim = len(vec)
             print(f"transcript embedding dim = {dim} (provider=voyage, model={VOYAGE_EMBED_MODEL})")
 
-        doc = {
+        docs.append({
             "t_start": start,
             "t_end": end,
             "text": text,
@@ -126,15 +123,7 @@ def ingest_transcripts(video_path: str, video_id: str = None, video_name: str = 
                 "dims": dim
             },
             "text_embedding": vec
-        }
-        
-        # Add video identification if provided
-        if video_id:
-            doc["video_id"] = video_id
-        if video_name:
-            doc["video_name"] = video_name
-            
-        docs.append(doc)
+        })
 
     if not docs:
         return 0
