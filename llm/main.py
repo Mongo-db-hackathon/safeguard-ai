@@ -19,6 +19,7 @@ from mongo_client_1 import create_collections, db, FRAME_INTELLIGENCE_METADATA, 
 # Import retrieval functions
 from get_voyage_embed import get_voyage_embedding
 from retreival_2 import manual_hybrid_search
+from get_video_path import get_video_name, get_video_path
 
 # Import train.py functions for merged collection
 from train import create_merged_collection, VIDEO_INTELLIGENCE_TRANSCRIPTS
@@ -40,6 +41,11 @@ def work(video_path):
     # Insert video metadata and get video_id
     video_id = insert_video_metadata(video_title, video_path)
     print(f"Inserted video metadata. Video ID: {video_id}")
+
+    video_name = get_video_name(video_id)
+    print(f"Video name: {video_name}")
+    video_path = get_video_path(video_id)
+    print(f"Video path: {video_path}")
 
     frame_data = process_frames_to_embeddings_with_descriptions(
         frames_dir="llm/frames", input_type="document", delay_seconds=0.5, cut_off_frame=500
