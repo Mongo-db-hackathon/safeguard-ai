@@ -32,6 +32,7 @@ print(db)
 
 # Collection names
 FRAME_INTELLIGENCE_METADATA = "video_intelligence"
+TRANSCRIPT_COLL = "transcripts"
 VIDEO_LIBRARY = "video_library"
 PREVIOUS_FRAME_INCIDENTS = "previous_frame_incidents"
 

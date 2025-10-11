@@ -1,6 +1,7 @@
 import os, requests
 from pymongo import MongoClient
 
+from llm.mongo_client_1 import FRAME_INTELLIGENCE_METADATA, db, TRANSCRIPT_COLL
 from transcripts.video2audio import extract_audio
 
 # providers
@@ -22,15 +23,10 @@ VOYAGE_EMBED_URL = "https://api.voyageai.com/v1/embeddings"
 VOYAGE_EMBED_MODEL = os.getenv("VOYAGE_EMBED_MODEL", "voyage-3")
 
 # mongo
-MONGO_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
-DB_NAME = os.getenv("DB_NAME", "video_intel")
-FRAMES_COLL = os.getenv("FRAMES_COLL", "frames")
-TRANSCRIPT_COLL = os.getenv("TRANSCRIPT_COLL", "transcripts")
 
-mongo = MongoClient(MONGO_URI)
-db = mongo[DB_NAME]
-frames_col = db[FRAMES_COLL]
-tx_col = db[TRANSCRIPT_COLL]
+
+
+tx_col = db[FRAME_INTELLIGENCE_METADATA]
 
 
 
@@ -117,7 +113,6 @@ def ingest_transcripts(video_path: str) -> int:
             print(f"transcript embedding dim = {dim} (provider=voyage, model={VOYAGE_EMBED_MODEL})")
 
         docs.append({
-            "source": os.path.basename(video_path),
             "t_start": start,
             "t_end": end,
             "text": text,
