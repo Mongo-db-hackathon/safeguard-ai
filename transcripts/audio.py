@@ -1,5 +1,6 @@
-import os, requests
+import os, requests, sys
 from pymongo import MongoClient
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from llm.mongo_client_1 import FRAME_INTELLIGENCE_METADATA, db, TRANSCRIPT_COLL
 from transcripts.video2audio import extract_audio
@@ -85,7 +86,10 @@ def embed_text(text: str):
 import os
 from typing import List, Dict
 
-def ingest_transcripts(video_path: str) -> int:
+def ingest_transcripts(video_path: str, video_id: str = None, video_name: str = None) -> int:
+    """
+    Ingest transcripts with video identification support
+    """
     segs = transcribe_with_fireworks(video_path)
     # Normalize shape just in case
     if isinstance(segs, dict) and "segments" in segs:
@@ -112,7 +116,7 @@ def ingest_transcripts(video_path: str) -> int:
             dim = len(vec)
             print(f"transcript embedding dim = {dim} (provider=voyage, model={VOYAGE_EMBED_MODEL})")
 
-        docs.append({
+        doc = {
             "t_start": start,
             "t_end": end,
             "text": text,
@@ -122,7 +126,15 @@ def ingest_transcripts(video_path: str) -> int:
                 "dims": dim
             },
             "text_embedding": vec
-        })
+        }
+        
+        # Add video identification if provided
+        if video_id:
+            doc["video_id"] = video_id
+        if video_name:
+            doc["video_name"] = video_name
+            
+        docs.append(doc)
 
     if not docs:
         return 0
