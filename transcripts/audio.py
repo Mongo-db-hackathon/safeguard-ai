@@ -114,14 +114,8 @@ def ingest_transcripts(video_path: str) -> int:
             print(f"transcript embedding dim = {dim} (provider=voyage, model={VOYAGE_EMBED_MODEL})")
 
         docs.append({
-            "t_start": start,
-            "t_end": end,
+            "t_start": int(start),
             "text": text,
-            "embed": {                    # small audit block (optional but useful)
-                "provider": "voyage",
-                "model": VOYAGE_EMBED_MODEL,
-                "dims": dim
-            },
             "text_embedding": vec
         })
 

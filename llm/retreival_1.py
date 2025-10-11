@@ -61,34 +61,36 @@ def semantic_search_with_mongodb(
 
 
 
-user_query = "Can you get me the frame with the red shirt player with front flip"
+if __name__ == "__main__":
+
+    user_query = "Can you get me the frame with the red shirt player with front flip"
 
 
-scalar_results = semantic_search_with_mongodb(
-    user_query=user_query,
-    collection=db[FRAME_INTELLIGENCE_METADATA],
-    top_n=5,
-    vector_search_index_name="vector_search_index_scalar",
-)
+    scalar_results = semantic_search_with_mongodb(
+        user_query=user_query,
+        collection=db[FRAME_INTELLIGENCE_METADATA],
+        top_n=5,
+        vector_search_index_name="vector_search_index_scalar",
+    )
 
 
-full_fidelity_results = semantic_search_with_mongodb(
-    user_query=user_query,
-    collection=db[FRAME_INTELLIGENCE_METADATA],
-    top_n=5,
-    vector_search_index_name="vector_search_index_full_fidelity",
-)
+    full_fidelity_results = semantic_search_with_mongodb(
+        user_query=user_query,
+        collection=db[FRAME_INTELLIGENCE_METADATA],
+        top_n=5,
+        vector_search_index_name="vector_search_index_full_fidelity",
+    )
 
-print(full_fidelity_results)
-
-
+    print(full_fidelity_results)
 
 
-binary_results = semantic_search_with_mongodb(
-    user_query=user_query,
-    collection=db[FRAME_INTELLIGENCE_METADATA],
-    top_n=5,
-    vector_search_index_name="vector_search_index_binary",
-)
 
-print(binary_results)
+
+    binary_results = semantic_search_with_mongodb(
+        user_query=user_query,
+        collection=db[FRAME_INTELLIGENCE_METADATA],
+        top_n=5,
+        vector_search_index_name="vector_search_index_binary",
+    )
+
+    print(binary_results)

@@ -19,7 +19,7 @@ load_dotenv()
 # point OpenAI client to Fireworks endpoint + key
 fw_client = OpenAI(
     base_url="https://api.fireworks.ai/inference/v1",
-    api_key=os.getenv("FIREWORKS1"),
+    api_key=os.getenv("FIREWORKS_1"),
 )
 
 def generate_frame_description_fireworks(image_path: str) -> Optional[str]:
