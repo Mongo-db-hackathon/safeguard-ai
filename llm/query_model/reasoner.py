@@ -1,6 +1,9 @@
 import os, json, requests
 from pprint import pprint
 
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_google_genai import ChatGoogleGenerativeAI
+
 from llm.inference import hybrid_search_with_transcripts
 from llm.query_model.router import route_query as router_model_call
 
@@ -8,6 +11,9 @@ FIREWORKS_1 = "fw_3ZYWGYXM8p1Z4GQTZScCJCXy"
 FIREWORKS_API_KEY = "fw_3ZYWGYXM8p1Z4GQTZScCJCXy"
 MODEL = "accounts/fireworks/models/llama-v3p3-70b-instruct"
 URL = "https://api.fireworks.ai/inference/v1/chat/completions"
+
+llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash")
+
 
 SYSTEM_PROMPT = (
     "You are a factual video analysis assistant. Use ONLY the evidence provided in the user message. "
@@ -28,58 +34,58 @@ SYSTEM_PROMPT = (
     "- Keep the summary to 1–2 sentences. Include inline [mm:ss] references only if present in the evidence.\n"
     "- Cite the exact item IDs you relied on (frames[].id or transcripts[].id) in the citations array.\n"
     "\n"
-    "Return your response STRICTLY as compact JSON with this schema:\n"
-    "{\n"
-    "  \"summary\": \"<1–2 sentence factual summary>\",\n"
-    "  \"video_id\": \"<chosen video_id or 'unknown'>\",\n"
-    "  \"video_name\": \"<chosen video_name or 'unknown'>\",\n"
-    "  \"canonical_time_window\": [<start_seconds>, <end_seconds>] or null,\n"
-    "  \"key_timestamps\": [\"mm:ss\", ...],\n"
-    "  \"citations\": [\"<ids used>\"]\n"
-    "}\n"
-    "Output ONLY JSON. No additional text."
+
+    "Return your response STRICTLY as compact JSON with this schema:"
+    "Sample response            "
+    " {{'summary': '...',   'ts': 4.0,   'video': 'videos/video.mp4'}}         "
+    
+    "Output ONLY JSON. No additional text. no formatting at all, not line breaks and frame"
 )
 
 def reasoner_query(q: str, data, video_id=None, video_name=None):
     # # --- Call router model first (small LLM) ---
     # router_output = router_model_call(q)
     # print("Router output:", router_output)
-    
 
-    payload = {
-        "model": MODEL,
-        "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": q},
-            {
-            "role": "user",
-            "content": json.dumps({
-                "question": q,
-                "video_id": video_id,
-                "video_name": video_name,
-                # "intent": router_output.get("intent"), #router model (small LLM) result (Optional)
-                # "time_range": router_output.get("time_range"), #router model (small LLM) result (Optional)
-                "evidence": data
-            }, indent=2)
-        }
-        ],
-        "temperature": 0,
-        "max_tokens": 80,
-        "stream": False
-    }
-    headers = {
-        "Authorization": f"Bearer {FIREWORKS_API_KEY}",
-        "Content-Type": "application/json"
-    }
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", SYSTEM_PROMPT),
+        ("human", "{user_input}")
+    ])
 
-    r = requests.post(URL, headers=headers, json=payload, timeout=20)
-    r.raise_for_status()
-    msg = r.json()["choices"][0]["message"]["content"]
+    # Prepare the user input with evidence
+    user_input = json.dumps({
+        "question": q,
+        "video_id": video_id,
+        "video_name": video_name,
+        "evidence": data
+    }, indent=2)
+
+    # Create chain and invoke
+    chain = prompt | llm
+
+    msg = ""  # Initialize to avoid potential reference before assignment
     try:
+        response = chain.invoke({"user_input": user_input})
+        msg = response.content.strip()
+
+        # Remove markdown code blocks if present
+        if msg.startswith("```json"):
+            msg = msg[7:]
+        if msg.startswith("```"):
+            msg = msg[3:]
+        if msg.endswith("```"):
+            msg = msg[:-3]
+        msg = msg.strip()
+
         return json.loads(msg)
-    except Exception:
-        return {"raw": msg}
-    
+    except json.JSONDecodeError as e:
+        print(f"Failed to parse JSON: {e}")
+        print(f"Raw response: {msg}")
+        return {"raw": msg, "error": "Failed to parse JSON"}
+    except Exception as e:
+        print(f"Error invoking LLM: {e}")
+        return {"error": str(e)}
+
     # Example
 if __name__ == "__main__":
     q = "Was there a guy in a blue jersey?"
@@ -93,8 +99,4 @@ if __name__ == "__main__":
         transcript_weight=0.3,
         search_type="text",
     )
-
-    pprint(merged_hybrid_results)
-
     print(reasoner_query(q, merged_hybrid_results))
-

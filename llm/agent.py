@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash",)
+llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash")
 
 prompt = ChatPromptTemplate.from_messages([
             ("system", "You are a video analyst that can answer questions on video provided tools that return your the video information for the users question"),

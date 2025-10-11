@@ -5,6 +5,9 @@ import asyncio
 import os
 from fastapi.staticfiles import StaticFiles
 
+from llm.inference import hybrid_search_with_transcripts
+from llm.query_model.reasoner import reasoner_query
+
 app = FastAPI()
 
 # ✅ Serve static video files
@@ -20,13 +23,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # ✅ Pydantic models
 class ChatRequest(BaseModel):
     message: str
 
+
 class VideoResult(BaseModel):
     path: str
     timestamp: int
+
 
 class ChatResponse(BaseModel):
     reply: str
@@ -37,22 +43,41 @@ class ChatResponse(BaseModel):
 async def handle_chat(req: ChatRequest):
     print(f"💬 Message from frontend: {req.message}")
     await asyncio.sleep(3)  # simulate processing time
+    q = req.message
 
-    # ✅ Dynamically fetch .mp4 videos from folder
-    all_files = [
-        f for f in os.listdir(VIDEO_FOLDER)
-        if f.lower().endswith(".mp4")
-    ]
-
-    # Just simulate timestamps for now
-    videos = [
-        {"path": file, "timestamp": (i + 1) * 10}
-        for i, file in enumerate(all_files)
-    ]
-
-    reply = f"{len(videos)} relevant video clip(s) found:" if videos else "No videos found."
+    merged_hybrid_results = hybrid_search_with_transcripts(
+        user_query="blue jersey",
+        top_n=5,
+        vector_weight=0.7,
+        text_weight=0.3,
+        transcript_weight=0.3,
+        search_type="text",
+    )
+    res = reasoner_query(q, merged_hybrid_results)
 
     return {
-        "reply": reply,
-        "videos": videos,
+        'reply': res.get('summary'),
+        'videos': {
+            "path": "sample.mp4",
+            "timestamp": res['canonical_time_window'][0]
+        }
     }
+
+    # # ✅ Dynamically fetch .mp4 videos from folder
+    # all_files = [
+    #     f for f in os.listdir(VIDEO_FOLDER)
+    #     if f.lower().endswith(".mp4")
+    # ]
+    #
+    # # Just simulate timestamps for now
+    # videos = [
+    #     {"path": file, "timestamp": (i + 1) * 10}
+    #     for i, file in enumerate(all_files)
+    # ]
+    #
+    # reply = f"{len(videos)} relevant video clip(s) found:" if videos else "No videos found."
+    #
+    # return {
+    #     "reply": reply,
+    #     "videos": videos,
+    # }

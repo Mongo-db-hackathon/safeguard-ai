@@ -300,7 +300,7 @@ def hybrid_search_with_transcripts(
     print(f"Found {len(sorted_results)} results for query: '{user_query}'")
 
 
-    res = [{'des':item['doc']['des'], 'ts':item['doc']['ts'], 'video':get_video_path(get_video_path)} for item in sorted_results]
+    res = [{'des':item['doc']['des'], 'ts':item['doc']['ts'], 'video':get_video_path(item['doc']['video_id'])} for item in sorted_results]
     return res
 
 
