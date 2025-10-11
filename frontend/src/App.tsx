@@ -30,6 +30,25 @@ export default function App() {
     if (!loading) inputRef.current?.focus();
   }, [loading]);
 
+  // Typing animation for bot replies
+  const simulateTyping = (fullText: string) => {
+    return new Promise<void>((resolve) => {
+      let index = 0;
+      const interval = setInterval(() => {
+        setMessages((prev) => {
+          const updated = [...prev];
+          updated[updated.length - 1].text = fullText.slice(0, index);
+          return updated;
+        });
+        index++;
+        if (index > fullText.length) {
+          clearInterval(interval);
+          resolve();
+        }
+      }, 20);
+    });
+  };
+
   const handleSend = async () => {
     if (!message.trim()) return;
 
@@ -53,22 +72,20 @@ export default function App() {
 
       setMessages((prev) => {
         const withoutTyping = prev.filter((m) => m.text !== 'typing...');
-        const botMessages: Message[] = [{ sender: 'bot', text: reply }];
-
-        if (Array.isArray(videos)) {
-          setVideoResults(videos);
-
-          const videoMessages: Message[] = videos.map((v, i) => ({
-            sender: 'bot',
-            text: `Watch ${extractFileName(v.path)} at ${v.timestamp}s`,
-            videoIndex: i,
-          }));
-
-          return [...withoutTyping, ...botMessages, ...videoMessages];
-        } else {
-          return [...withoutTyping, ...botMessages];
-        }
+        return [...withoutTyping, { sender: 'bot', text: '' }];
       });
+
+      await simulateTyping(reply);
+
+      if (Array.isArray(videos)) {
+        setVideoResults(videos);
+        const videoMessages: Message[] = videos.map((v, i) => ({
+          sender: 'bot',
+          text: `Watch ${extractFileName(v.path)} at ${v.timestamp}s`,
+          videoIndex: i,
+        }));
+        setMessages((prev) => [...prev, ...videoMessages]);
+      }
     } catch (err) {
       console.error('❌ Error sending message:', err);
       setMessages((prev) => [
@@ -113,8 +130,6 @@ export default function App() {
 
       <div className="main" style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         <aside className="chat" style={{ overflowY: 'auto' }}>
-          {/* <div className="chat-title">AI Assistant</div> */}
-
           <div className="chat-messages">
             <div className="chat-bubble bot">
               Please ask a question and I will help find relevant video clips.
@@ -125,7 +140,7 @@ export default function App() {
                 <div key={i} className="video-card-wrapper">
                   <div className="video-card">
                     <div className="video-card-title">
-                      {extractFileName(videoResults[msg.videoIndex].path)} at{' '}
+                      {extractFileName(videoResults[msg.videoIndex].path)} |{' '}
                       {videoResults[msg.videoIndex].timestamp}s
                     </div>
                     <button
