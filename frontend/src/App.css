@@ -95,3 +95,55 @@ body, html, #root {
 .video h3 {
   margin-top: 12px;
 }
+
+/* Chat layout fix */
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Common bubble style */
+.chat-bubble {
+  padding: 10px 14px;
+  border-radius: 12px;
+  margin-bottom: 10px;
+  max-width: 80%;
+  word-wrap: break-word;
+}
+
+/* 🤖 Bot messages (left) */
+.chat-bubble.bot {
+  background-color: #e5e5e5;
+  color: #000;
+  align-self: flex-start;
+}
+
+/* 🙋 User messages (right) */
+.chat-bubble.user {
+  background-color: #007aff;
+  color: white;
+  align-self: flex-end;
+}
+
+/* Typing indicator */
+.chat-bubble.typing {
+  background-color: transparent;
+  box-shadow: none;
+  align-self: flex-start;
+}
+
+.dots {
+  display: inline-block;
+  font-size: 20px;
+  color: #666;
+  letter-spacing: 2px;
+  animation: blink 1.2s infinite;
+}
+
+@keyframes blink {
+  0%, 20% { opacity: 0; }
+  50% { opacity: 1; }
+  100% { opacity: 0; }
+}
