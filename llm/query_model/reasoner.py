@@ -40,7 +40,7 @@ SYSTEM_PROMPT = (
     "Output ONLY JSON. No additional text."
 )
 
-def reasoner_query(q: str, frames_data, transcript_data, video_id=None, video_name=None):
+def reasoner_query(q: str, data, video_id=None, video_name=None):
     # # --- Call router model first (small LLM) ---
     # router_output = router_model_call(q)
     # print("Router output:", router_output)
@@ -59,10 +59,7 @@ def reasoner_query(q: str, frames_data, transcript_data, video_id=None, video_na
                 "video_name": video_name,
                 # "intent": router_output.get("intent"), #router model (small LLM) result (Optional)
                 # "time_range": router_output.get("time_range"), #router model (small LLM) result (Optional)
-                "evidence": {
-                    "frames": frames_data,         # from Mongo video_intelligence.video_intelligence
-                    "transcripts": transcript_data # from Mongo video_intelligence.video_intelligence_transcripts
-                }
+                "evidence": data
             }, indent=2)
         }
         ],
@@ -86,18 +83,8 @@ def reasoner_query(q: str, frames_data, transcript_data, video_id=None, video_na
     # Example
 if __name__ == "__main__":
     q = "Was there a guy in a blue jersey?"
-    print(reasoner_query(q, [""" **People**: 
-          - One player is wearing a light blue jersey with the number "2" visible, black shorts, and red cleats. This player appears to be attempting to control or intercept the ball.
-          - The other player is wearing a white jersey with the number "19" and a star logo, white shorts, and white socks with black stripes. This player is standing near the ball, seemingly in a defensive or neutral stance.
-        - **Actions**: The player in blue is leaning forward, focusing on the ball, while the player in white is standing upright, observing the situation.
-        - **Setting**: The scene is on a well-maintained soccer field with visible white boundary lines.
-        - **Visible Text**: 
-          - "SPORTZONE" is displayed in the top right corner.
-          - The word "HUMILIATING" is prominently displayed in bold, yellow text with a black outline in the center of the frame.
-        
-        The overall context suggests a moment of tension or a critical play in the match."""], [""], "vid_001", "Sample Video"))
 
-    q = "blue jersey"
+
     merged_hybrid_results = hybrid_search_with_transcripts(
         user_query="blue jersey",
         top_n=5,

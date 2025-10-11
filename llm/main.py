@@ -26,7 +26,6 @@ def work(video_path):
     # video_to_images(
     #     video_path=video_path, output_dir="frames", interval_seconds=2
     # )
-
     voyageai_client = voyageai.Client()
     openai_client = OpenAI()
 
@@ -78,6 +77,9 @@ VECTOR_INDEX_FRAMES_SCALAR = "vector_search_index_frames_scalar"
 VECTOR_INDEX_FRAMES_FULL = "vector_search_index_frames_full_fidelity"
 VECTOR_INDEX_TRANSCRIPT_SCALAR = "vector_search_transcript_index_scalar1"
 VECTOR_INDEX_TRANSCRIPT_FULL = "vector_search_transcript_index_full_fidelity1"
+
+
+
 
 
 def create_search_incides():
@@ -192,7 +194,7 @@ def create_search_incides():
 
 
 if __name__ == "__main__":
-    create_search_incides()
+    # create_search_incides()
 
-    # video_path = "videos/video.mp4"
-    # work(video_path)
+    video_path = "videos/video.mp4"
+    work(video_path)

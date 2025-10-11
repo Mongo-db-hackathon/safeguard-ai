@@ -13,6 +13,8 @@ def get_video_path(video_id: str) -> str | None:
     Returns:
         str | None: The video path if found, None otherwise
     """
+    if not video_id:
+        return None
     coll = db[VIDEO_LIBRARY]
     doc = coll.find_one({"_id": ObjectId(video_id)}, {"_id": 0, "video_path": 1})
     return doc.get("video_path") if doc else None

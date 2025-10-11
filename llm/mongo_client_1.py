@@ -198,7 +198,9 @@ if __name__ == "__main__":
     db[FRAME_INTELLIGENCE_METADATA].delete_many({})
     db[PREVIOUS_FRAME_INCIDENTS].delete_many({})
     db[VIDEO_LIBRARY].delete_many({})
+    db[VIDEO_INTELLIGENCE_TRANSCRIPTS].delete_many({})
 
+    exit()
     print(create_collections())
 
     create_vector_search_index(

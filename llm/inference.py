@@ -1,4 +1,5 @@
 # Semantic Search Functionality
+from llm.get_video_path import get_video_path
 from llm.get_voyage_embed import get_voyage_embedding
 from llm.main import VECTOR_INDEX_FRAMES_SCALAR, VECTOR_INDEX_FRAMES_FULL, VECTOR_INDEX_TRANSCRIPT_SCALAR, \
     VECTOR_INDEX_TRANSCRIPT_FULL
@@ -298,7 +299,8 @@ def hybrid_search_with_transcripts(
 
     print(f"Found {len(sorted_results)} results for query: '{user_query}'")
 
-    res = [{'des':item['doc']['des'], 'ts':item['doc']['ts'], 'video':item['doc']['video_id']} for item in sorted_results]
+
+    res = [{'des':item['doc']['des'], 'ts':item['doc']['ts'], 'video':get_video_path(get_video_path)} for item in sorted_results]
     return res
 
 
