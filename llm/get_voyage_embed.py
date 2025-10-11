@@ -1,4 +1,5 @@
 import os
+from functools import lru_cache
 from typing import List, Optional
 
 from PIL import Image
@@ -8,7 +9,7 @@ import voyageai
 load_dotenv()
 voyageai_client = voyageai.Client()
 
-
+@lru_cache(maxsize=8)
 def get_voyage_embedding(data: Image.Image | str, input_type: str = "document") -> List:
     """
     Get Voyage AI embeddings for images and text.

@@ -1,4 +1,9 @@
 # Semantic Search Functionality
+from llm.get_voyage_embed import get_voyage_embedding
+from llm.mongo_client_1 import TRANSCRIPT_COLL, FRAME_INTELLIGENCE_METADATA, db, VIDEO_INTELLIGENCE_TRANSCRIPTS
+from llm.retreival_2 import manual_hybrid_search
+
+
 def semantic_search_with_mongodb(
         user_query, collection, top_n=5, vector_search_index_name="vector_search_index"
 ):
@@ -329,185 +334,187 @@ def display_search_results(results, search_type, top_n=3, show_transcripts=False
             print()  # Add spacing between results
 
 
-while True:
-    try:
-        # Get user input
-        user_query = input("\nEnter your search query (or 'quit' to exit): ").strip()
+if __name__ == "__main__":
+    while True:
+        try:
+            # Get user input
+            user_query = input("\nEnter your search query (or 'quit' to exit): ").strip()
 
-        # Check for exit commands
-        if user_query.lower() in ['quit', 'exit', 'q']:
-            print("Goodbye!")
-            break
+            # Check for exit commands
+            if user_query.lower() in ['quit', 'exit', 'q']:
+                print("Goodbye!")
+                break
 
-        # Skip empty queries
-        if not user_query:
-            print("Please enter a valid query.")
-            continue
+            # Skip empty queries
+            if not user_query:
+                print("Please enter a valid query.")
+                continue
 
-        print(f"\n--- Searching for: '{user_query}' ---")
+            print(f"\n--- Searching for: '{user_query}' ---")
 
-        # Ask user if they want to include transcript data
-        include_transcripts = input("Include transcript data in results? (y/n): ").strip().lower()
-        show_transcripts = include_transcripts in ['y', 'yes']
+            # Ask user if they want to include transcript data
+            include_transcripts = input("Include transcript data in results? (y/n): ").strip().lower()
+            # show_transcripts = include_transcripts in ['y', 'yes']
+            show_transcripts ='y'
 
-        # Test with scalar quantization (faster, less precise)
-        print("Searching with scalar quantization...")
-        scalar_results = semantic_search_with_mongodb(
-            user_query=user_query,
-            collection=db[FRAME_INTELLIGENCE_METADATA],
-            top_n=5,
-            vector_search_index_name="vector_search_index_scalar",
-        )
-
-        # Test with full fidelity (slower, more precise)
-        print("Searching with full fidelity...")
-        full_fidelity_results = semantic_search_with_mongodb(
-            user_query=user_query,
-            collection=db[FRAME_INTELLIGENCE_METADATA],
-            top_n=5,
-            vector_search_index_name="vector_search_index_full_fidelity",
-        )
-
-        # Test with manual hybrid search (combines vector + text search)
-        print("Searching with manual hybrid search (70% vector, 30% text)...")
-        hybrid_results = manual_hybrid_search(
-            user_query=user_query,
-            collection=db[FRAME_INTELLIGENCE_METADATA],
-            top_n=5,
-            vector_search_index_name="vector_search_index_scalar",
-            text_search_index_name="text_search_index",
-            vector_weight=0.7,
-            text_weight=0.3,
-            search_type="text",
-        )
-
-        # NEW: Test with merged collection (includes transcript data)
-        if show_transcripts:
-            print("Searching merged collection with transcript data...")
-            merged_semantic_results = semantic_search_with_transcripts(
+            # Test with scalar quantization (faster, less precise)
+            print("Searching with scalar quantization...")
+            scalar_results = semantic_search_with_mongodb(
                 user_query=user_query,
-                collection=merged_collection,
+                collection=db[FRAME_INTELLIGENCE_METADATA],
                 top_n=5,
                 vector_search_index_name="vector_search_index_scalar",
             )
 
-            print("Searching merged collection with hybrid search + transcripts...")
-            merged_hybrid_results = hybrid_search_with_transcripts(
+            # Test with full fidelity (slower, more precise)
+            print("Searching with full fidelity...")
+            full_fidelity_results = semantic_search_with_mongodb(
                 user_query=user_query,
-                collection=merged_collection,
+                collection=db[FRAME_INTELLIGENCE_METADATA],
                 top_n=5,
-                vector_search_index_name="vector_search_index_scalar",
-                text_search_index_name="text_search_index",
-                vector_weight=0.7,
-                text_weight=0.3,
-                search_type="text",
+                vector_search_index_name="vector_search_index_full_fidelity",
             )
 
-        # Display results
-        display_search_results(scalar_results, "Scalar Quantization", 5, show_transcripts)
-        display_search_results(full_fidelity_results, "Full Fidelity", 5, show_transcripts)
-        display_search_results(hybrid_results, "Hybrid Search (70% vector, 30% text)", 5, show_transcripts)
+            # Test with manual hybrid search (combines vector + text search)
+            # print("Searching with manual hybrid search (70% vector, 30% text)...")
+            # hybrid_results = manual_hybrid_search(
+            #     user_query=user_query,
+            #     collection=db[FRAME_INTELLIGENCE_METADATA],
+            #     top_n=5,
+            #     vector_search_index_name="vector_search_index_scalar",
+            #     text_search_index_name="text_search_index",
+            #     vector_weight=0.7,
+            #     text_weight=0.3,
+            #     search_type="text",
+            # )
 
-        # Display merged collection results if transcripts were requested
-        if show_transcripts:
-            display_search_results(merged_semantic_results, "Merged Collection - Semantic Search", 5, show_transcripts)
-            display_search_results(merged_hybrid_results, "Merged Collection - Hybrid Search", 5, show_transcripts)
+            # NEW: Test with merged collection (includes transcript data)
+            if show_transcripts:
+                # print("Searching merged collection with transcript data...")
+                # merged_semantic_results = semantic_search_with_transcripts(
+                #     user_query=user_query,
+                #     collection=db[VIDEO_INTELLIGENCE_TRANSCRIPTS],
+                #     top_n=5,
+                #     vector_search_index_name="vector_search_index_scalar",
+                # )
 
-        # Ask if user wants to see more details
-        all_results = [scalar_results, full_fidelity_results, hybrid_results]
-        if show_transcripts:
-            all_results.extend([merged_semantic_results, merged_hybrid_results])
+                print("Searching merged collection with hybrid search + transcripts...")
+                merged_hybrid_results = hybrid_search_with_transcripts(
+                    user_query=user_query,
+                    collection=db[VIDEO_INTELLIGENCE_TRANSCRIPTS],
+                    top_n=5,
+                    vector_search_index_name="vector_search_index_scalar",
+                    text_search_index_name="text_search_index",
+                    vector_weight=0.7,
+                    text_weight=0.3,
+                    search_type="text",
+                )
 
-        if any(all_results):
-            show_details = input("\nWould you like to see more details for any result? (y/n): ").strip().lower()
-            if show_details in ['y', 'yes']:
-                try:
-                    if show_transcripts:
-                        print(
-                            "Which result set? (1) Scalar, (2) Full Fidelity, (3) Hybrid, (4) Merged Semantic, (5) Merged Hybrid")
-                        result_set = int(input("Enter choice (1-5): "))
-                    else:
-                        print("Which result set? (1) Scalar, (2) Full Fidelity, (3) Hybrid")
-                        result_set = int(input("Enter choice (1-3): "))
+            # Display results
+            display_search_results(scalar_results, "Scalar Quantization", 5, show_transcripts)
+            display_search_results(full_fidelity_results, "Full Fidelity", 5, show_transcripts)
+            display_search_results(hybrid_results, "Hybrid Search (70% vector, 30% text)", 5, show_transcripts)
 
-                    result_num = int(input("Enter result number (1-5): ")) - 1
+            # Display merged collection results if transcripts were requested
+            if show_transcripts:
+                display_search_results(merged_semantic_results, "Merged Collection - Semantic Search", 5, show_transcripts)
+                display_search_results(merged_hybrid_results, "Merged Collection - Hybrid Search", 5, show_transcripts)
 
-                    # Select the appropriate result set
-                    if result_set == 1:
-                        results = scalar_results
-                    elif result_set == 2:
-                        results = full_fidelity_results
-                    elif result_set == 3:
-                        results = hybrid_results
-                    elif result_set == 4 and show_transcripts:
-                        results = merged_semantic_results
-                    elif result_set == 5 and show_transcripts:
-                        results = merged_hybrid_results
-                    else:
-                        print("Invalid choice.")
-                        continue
+            # Ask if user wants to see more details
+            all_results = [scalar_results, full_fidelity_results, hybrid_results]
+            if show_transcripts:
+                all_results.extend([merged_semantic_results, merged_hybrid_results])
 
-                    if 0 <= result_num < len(results):
-                        result = results[result_num]
-                        print(f"\n--- Detailed Result {result_num + 1} ---")
-                        print(f"Frame Number: {result.get('frame_number', 'N/A')}")
-
-                        # Handle both timestamp formats
-                        timestamp = result.get('frame_timestamp') or result.get('timestamp', 'N/A')
-                        print(f"Timestamp: {timestamp}")
-
-                        # Handle both score formats
-                        score = result.get('score') or result.get('rrf_score', 'N/A')
-                        if isinstance(score, (int, float)):
-                            print(f"Score: {score:.4f}")
-                        else:
-                            print(f"Score: {score}")
-
-                        print(f"Full Description: {result.get('frame_description', 'N/A')}")
-
-                        # Handle both path formats
-                        image_path = result.get('image_path') or result.get('frame_path', 'N/A')
-                        print(f"Image Path: {image_path}")
-
-                        # Show score details for hybrid results
-                        if 'score_details' in result:
-                            print(f"\nScore Details (RRF breakdown):")
-                            for detail in result['score_details']:
-                                print(f"  - Pipeline: {detail['pipeline']}")
-                                print(
-                                    f"    Rank: {detail['rank']}, Weight: {detail['weight']}, Contribution: {detail['contribution']:.6f}")
-
-                        # Show transcript data if available
-                        if 'transcript_data' in result and result['transcript_data']:
-                            print(f"\n📝 Transcript Data ({len(result['transcript_data'])} segments):")
-                            for i, transcript in enumerate(result['transcript_data'], 1):
-                                print(
-                                    f"  {i}. Time: {transcript.get('t_start', 'N/A')}-{transcript.get('t_end', 'N/A')}s")
-                                print(f"     Text: {transcript.get('text', 'N/A')}")
-                                if i < len(result['transcript_data']):
-                                    print()  # Add spacing between transcripts
-                        elif result.get('transcript_count', 0) > 0:
+            if any(all_results):
+                show_details = input("\nWould you like to see more details for any result? (y/n): ").strip().lower()
+                if show_details in ['y', 'yes']:
+                    try:
+                        if show_transcripts:
                             print(
-                                f"\n📝 Transcripts: {result.get('transcript_count', 0)} segments available (use merged collection search to see details)")
+                                "Which result set? (1) Scalar, (2) Full Fidelity, (3) Hybrid, (4) Merged Semantic, (5) Merged Hybrid")
+                            result_set = int(input("Enter choice (1-5): "))
                         else:
-                            print(f"\n📝 Transcripts: No transcript data available")
-                    else:
-                        print("Invalid result number.")
-                except ValueError:
-                    print("Please enter a valid number.")
+                            print("Which result set? (1) Scalar, (2) Full Fidelity, (3) Hybrid")
+                            result_set = int(input("Enter choice (1-3): "))
 
-    except KeyboardInterrupt:
-        print("\n\nGoodbye!")
-        break
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        print("Please try again.")
+                        result_num = int(input("Enter result number (1-5): ")) - 1
 
-print("\n=== Interactive Search Complete! ===")
-print("✅ Enhanced search capabilities:")
-print("   - Original frame search (scalar, full fidelity, hybrid)")
-print("   - Merged collection search with transcript data")
-print("   - Semantic and hybrid search on video frames + transcripts")
-print("   - Detailed transcript display with timestamps")
+                        # Select the appropriate result set
+                        if result_set == 1:
+                            results = scalar_results
+                        elif result_set == 2:
+                            results = full_fidelity_results
+                        elif result_set == 3:
+                            results = hybrid_results
+                        elif result_set == 4 and show_transcripts:
+                            results = merged_semantic_results
+                        elif result_set == 5 and show_transcripts:
+                            results = merged_hybrid_results
+                        else:
+                            print("Invalid choice.")
+                            continue
+
+                        if 0 <= result_num < len(results):
+                            result = results[result_num]
+                            print(f"\n--- Detailed Result {result_num + 1} ---")
+                            print(f"Frame Number: {result.get('frame_number', 'N/A')}")
+
+                            # Handle both timestamp formats
+                            timestamp = result.get('frame_timestamp') or result.get('timestamp', 'N/A')
+                            print(f"Timestamp: {timestamp}")
+
+                            # Handle both score formats
+                            score = result.get('score') or result.get('rrf_score', 'N/A')
+                            if isinstance(score, (int, float)):
+                                print(f"Score: {score:.4f}")
+                            else:
+                                print(f"Score: {score}")
+
+                            print(f"Full Description: {result.get('frame_description', 'N/A')}")
+
+                            # Handle both path formats
+                            image_path = result.get('image_path') or result.get('frame_path', 'N/A')
+                            print(f"Image Path: {image_path}")
+
+                            # Show score details for hybrid results
+                            if 'score_details' in result:
+                                print(f"\nScore Details (RRF breakdown):")
+                                for detail in result['score_details']:
+                                    print(f"  - Pipeline: {detail['pipeline']}")
+                                    print(
+                                        f"    Rank: {detail['rank']}, Weight: {detail['weight']}, Contribution: {detail['contribution']:.6f}")
+
+                            # Show transcript data if available
+                            if 'transcript_data' in result and result['transcript_data']:
+                                print(f"\n📝 Transcript Data ({len(result['transcript_data'])} segments):")
+                                for i, transcript in enumerate(result['transcript_data'], 1):
+                                    print(
+                                        f"  {i}. Time: {transcript.get('t_start', 'N/A')}-{transcript.get('t_end', 'N/A')}s")
+                                    print(f"     Text: {transcript.get('text', 'N/A')}")
+                                    if i < len(result['transcript_data']):
+                                        print()  # Add spacing between transcripts
+                            elif result.get('transcript_count', 0) > 0:
+                                print(
+                                    f"\n📝 Transcripts: {result.get('transcript_count', 0)} segments available (use merged collection search to see details)")
+                            else:
+                                print(f"\n📝 Transcripts: No transcript data available")
+                        else:
+                            print("Invalid result number.")
+                    except ValueError:
+                        print("Please enter a valid number.")
+
+        except KeyboardInterrupt:
+            print("\n\nGoodbye!")
+            break
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            print("Please try again.")
+
+    print("\n=== Interactive Search Complete! ===")
+    print("✅ Enhanced search capabilities:")
+    print("   - Original frame search (scalar, full fidelity, hybrid)")
+    print("   - Merged collection search with transcript data")
+    print("   - Semantic and hybrid search on video frames + transcripts")
+    print("   - Detailed transcript display with timestamps")
 
 
