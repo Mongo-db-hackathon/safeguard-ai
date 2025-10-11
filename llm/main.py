@@ -13,6 +13,9 @@ from llm.mongo_client_1 import create_collections, db, FRAME_INTELLIGENCE_METADA
     create_vector_search_index, create_text_search_index, insert_frame_data_to_mongo, insert_video_metadata
 
 # Import retrieval functions
+from get_voyage_embed import get_voyage_embedding
+from retreival_2 import manual_hybrid_search
+from get_video_path import get_video_name, get_video_path
 
 # Import train.py functions for merged collection
 from llm.train import create_merged_collection, VIDEO_INTELLIGENCE_TRANSCRIPTS
@@ -32,6 +35,7 @@ def work(video_path):
     # Insert video metadata and get video_id
     video_id = insert_video_metadata(video_title, video_path)
     print(f"Inserted video metadata. Video ID: {video_id}")
+
 
     frame_data = process_frames_to_embeddings_with_descriptions(
         frames_dir="llm/frames", input_type="document", delay_seconds=0.5, cut_off_frame=500
@@ -103,6 +107,7 @@ def create_search_incides():
         quantization=None,  # leaves quantization unset = full fidelity
         embedding_path="frame_embedding",
     )
+
 
     # 3) create scalar-quantized index on frame_embedding (fast, smaller)
     create_vector_search_index(
