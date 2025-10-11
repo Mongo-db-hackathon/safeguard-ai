@@ -13,9 +13,9 @@ from llm.mongo_client_1 import create_collections, db, FRAME_INTELLIGENCE_METADA
     create_vector_search_index, create_text_search_index, insert_frame_data_to_mongo, insert_video_metadata
 
 # Import retrieval functions
-from get_voyage_embed import get_voyage_embedding
-from retreival_2 import manual_hybrid_search
-from get_video_path import get_video_name, get_video_path
+from llm.get_voyage_embed import get_voyage_embedding
+from llm.retreival_2 import manual_hybrid_search
+from llm.get_video_path import get_video_name, get_video_path
 
 # Import train.py functions for merged collection
 from llm.train import create_merged_collection, VIDEO_INTELLIGENCE_TRANSCRIPTS
