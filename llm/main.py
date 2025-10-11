@@ -71,21 +71,21 @@ def work(video_path):
 
     # Create merged collection with transcripts
     print("\n=== Creating Merged Collection with Transcripts ===")
-    create_merged_collection()
+    create_merged_collection(video_id)
     merged_collection = db[VIDEO_INTELLIGENCE_TRANSCRIPTS]
     print(f"Merged collection created: {VIDEO_INTELLIGENCE_TRANSCRIPTS}")
 
     create_search_incides()
 
 
+VECTOR_INDEX_FRAMES_SCALAR = "vector_search_index_frames_scalar"
+VECTOR_INDEX_FRAMES_FULL = "vector_search_index_frames_full_fidelity"
+VECTOR_INDEX_TRANSCRIPT_SCALAR = "vector_search_transcript_index_scalar1"
+VECTOR_INDEX_TRANSCRIPT_FULL = "vector_search_transcript_index_full_fidelity1"
 def create_search_incides():
     # 2. Create vector search indexes
 
     # 1) pick consistent names
-    VECTOR_INDEX_SCALAR = "vector_search_index_scalar"
-    VECTOR_INDEX_FULL = "vector_search_index_full_fidelity"
-    VECTOR_INDEX_SCALAR1 = "vector_search_index_scalar1"
-    VECTOR_INDEX_FULL1 = "vector_search_index_full_fidelity1"
 
     # 2) target collections
     transcript_coll = db[TRANSCRIPT_COLL]  # frames-only collection
@@ -94,7 +94,7 @@ def create_search_incides():
     # 3) create scalar-quantized index on frame_embedding (fast, smaller)
     create_vector_search_index(
         collection=merged_coll,  # or frames_coll if that’s where you search
-        vector_index_name=VECTOR_INDEX_SCALAR,
+        vector_index_name=VECTOR_INDEX_FRAMES_SCALAR,
         dimensions=1024,
         quantization="scalar",
         embedding_path="frame_embedding",
@@ -104,7 +104,7 @@ def create_search_incides():
     #    pass a value that does NOT trigger the quantization block in your function.
     create_vector_search_index(
         collection=merged_coll,
-        vector_index_name=VECTOR_INDEX_FULL,
+        vector_index_name=VECTOR_INDEX_FRAMES_FULL,
         dimensions=1024,
         quantization=None,  # leaves quantization unset = full fidelity
         embedding_path="frame_embedding",
@@ -114,7 +114,7 @@ def create_search_incides():
     # 3) create scalar-quantized index on frame_embedding (fast, smaller)
     create_vector_search_index(
         collection=transcript_coll,  # or frames_coll if that’s where you search
-        vector_index_name=VECTOR_INDEX_SCALAR1,
+        vector_index_name=VECTOR_INDEX_TRANSCRIPT_SCALAR,
         dimensions=1024,
         quantization="scalar",
         embedding_path="text_embedding",
@@ -124,12 +124,30 @@ def create_search_incides():
     #    pass a value that does NOT trigger the quantization block in your function.
     create_vector_search_index(
         collection=transcript_coll,
-        vector_index_name=VECTOR_INDEX_FULL1,
+        vector_index_name=VECTOR_INDEX_TRANSCRIPT_FULL,
         dimensions=1024,
         quantization=None,  # leaves quantization unset = full fidelity
         embedding_path="text_embedding",
     )
 
+    # PyMongo
+    db.command({
+        "createSearchIndexes": VIDEO_INTELLIGENCE_TRANSCRIPTS,  # collection name
+        "indexes": [{
+            "name": "frame_intelligence_index",  # text_search_index_name
+            "definition": {
+                "mappings": {
+                    "dynamic": True,
+                    "fields": {
+                        "frame_description": {"type": "string", "analyzer": "lucene.standard"},
+                        "frame_number": {"type": "number"},
+                        "frame_timestamp": {"type": "number"},
+                        "video_id": {"type": "string"}  # include if you filter/sort by it
+                    }
+                }
+            }
+        }]
+    })
 
     # print("Creating vector search indexes...")
     # create_vector_search_index(

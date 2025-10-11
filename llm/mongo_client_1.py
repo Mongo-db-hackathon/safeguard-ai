@@ -192,37 +192,7 @@ def create_vector_search_index(
 
 
 if __name__ == "__main__":
-    frame_intelligence_index_definition = {
-        "mappings": {
-            "dynamic": True,
-            "fields": {
-                # "video_id": {
-                #     "type": "string",
-                # },
-                # "video_name": {
-                #     "type": "string",
-                # },
-                # "video_url": {
-                #     "type": "string",
-                # },
-                "frame_description": {
-                    "type": "string",
-                },
-                "frame_number": {
-                    "type": "number",
-                },
-                "frame_timestamp": {
-                    "type": "date",
-                },
-            },
-        }
-    }
 
-    print(create_text_search_index(
-        db[FRAME_INTELLIGENCE_METADATA],
-        frame_intelligence_index_definition,
-        "frame_intelligence_index",
-    ))
 
     # Ensure the collections are empty
     db[FRAME_INTELLIGENCE_METADATA].delete_many({})

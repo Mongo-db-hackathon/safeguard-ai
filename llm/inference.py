@@ -1,5 +1,7 @@
 # Semantic Search Functionality
 from llm.get_voyage_embed import get_voyage_embedding
+from llm.main import VECTOR_INDEX_FRAMES_SCALAR, VECTOR_INDEX_FRAMES_FULL, VECTOR_INDEX_TRANSCRIPT_SCALAR, \
+    VECTOR_INDEX_TRANSCRIPT_FULL
 from llm.mongo_client_1 import TRANSCRIPT_COLL, FRAME_INTELLIGENCE_METADATA, db, VIDEO_INTELLIGENCE_TRANSCRIPTS
 from llm.retreival_2 import manual_hybrid_search
 
@@ -131,20 +133,15 @@ def semantic_search_with_transcripts(
 
 def hybrid_search_with_transcripts(
         user_query,
-        collection,
         top_n=5,
-        vector_search_index_name="vector_search_index_scalar",
-        text_search_index_name="text_search_index",
-        vector_weight=0.7,
+        vector_weight=0.4,
         text_weight=0.3,
+        transcript_weight=0.3,
         search_type="text",
 ):
-    """
-    Perform hybrid search on the merged collection with transcript data.
-    This is a modified version of manual_hybrid_search for the merged collection.
-    """
-
-    # Get query embedding
+    vector_search_index_name = "vector_search_index_scalar",
+    text_search_index_name = "frame_intelligence_index",
+    transcript_index_name = "transcript_search_index",
     query_embedding = get_voyage_embedding(user_query, input_type="query")
 
     if query_embedding is None:
@@ -152,10 +149,10 @@ def hybrid_search_with_transcripts(
         return []
 
     # Vector search pipeline for merged collection
-    vector_pipeline = [
+    frames_vector_pipeline = [
         {
             "$vectorSearch": {
-                "index": vector_search_index_name,
+                "index": VECTOR_INDEX_FRAMES_FULL,  # Use full fidelity for better accuracy
                 "path": "frame_embedding",  # Different field name in merged collection
                 "queryVector": query_embedding,
                 "numCandidates": 100,
@@ -170,16 +167,46 @@ def hybrid_search_with_transcripts(
                 "frame_description": 1,
                 "time_range": 1,
                 "transcript_count": 1,
+                "video_id": 1,
+                "vector_score": {"$meta": "vectorSearchScore"},
+
+            }
+        },
+    ]
+
+    try:
+        frames_vector_results = list(db[VIDEO_INTELLIGENCE_TRANSCRIPTS].aggregate(frames_vector_pipeline))
+    except Exception as e:
+        print(f"Error in vector search: {e}")
+        frames_vector_results = []
+
+    # Vector search pipeline for merged collection
+    transcript_vector_pipeline = [
+        {
+            "$vectorSearch": {
+                "index": VECTOR_INDEX_TRANSCRIPT_FULL,  # Use full fidelity for better accuracy
+                "path": "text_embedding",  # Different field name in merged collection
+                "queryVector": query_embedding,
+                "numCandidates": 100,
+                "limit": 20,
+            }
+        },
+        {
+            "$project": {
+                "_id": 1,
+                "text": 1,
+                "video_id": 1,
+                "t_start": 1,
                 "vector_score": {"$meta": "vectorSearchScore"},
             }
         },
     ]
 
     try:
-        vector_results = list(collection.aggregate(vector_pipeline))
+        transcript_vector_result = list(db[TRANSCRIPT_COLL].aggregate(transcript_vector_pipeline))
     except Exception as e:
         print(f"Error in vector search: {e}")
-        vector_results = []
+        transcript_vector_result = []
 
     # Text search pipeline for merged collection
     if search_type == "text":
@@ -188,7 +215,7 @@ def hybrid_search_with_transcripts(
         text_query = {"phrase": {"query": user_query, "path": "frame_description"}}
 
     text_pipeline = [
-        {"$search": {"index": text_search_index_name, **text_query}},
+        {"$search": {"index": 'frame_intelligence_index', **text_query}},
         {"$limit": 20},
         {
             "$project": {
@@ -196,15 +223,14 @@ def hybrid_search_with_transcripts(
                 "frame_number": 1,
                 "frame_timestamp": 1,
                 "frame_description": 1,
-                "time_range": 1,
-                "transcript_count": 1,
+                "video_id": 1,
                 "text_score": {"$meta": "searchScore"},
             }
         },
     ]
 
     try:
-        text_results = list(collection.aggregate(text_pipeline))
+        text_results = list(db[VIDEO_INTELLIGENCE_TRANSCRIPTS].aggregate(text_pipeline))
     except Exception as e:
         print(f"Error in text search: {e}")
         text_results = []
@@ -214,10 +240,12 @@ def hybrid_search_with_transcripts(
     rrf_scores = defaultdict(lambda: {"score": 0, "doc": None, "details": []})
 
     # Process vector results
-    for rank, doc in enumerate(vector_results, start=1):
+    for rank, doc in enumerate(frames_vector_results, start=1):
         doc_id = str(doc["_id"])
         rrf_contribution = vector_weight * (1 / (60 + rank))
         rrf_scores[doc_id]["score"] += rrf_contribution
+        doc['des'] = doc['frame_description']
+        doc['ts'] = doc['frame_timestamp']
         rrf_scores[doc_id]["doc"] = doc
         rrf_scores[doc_id]["details"].append({
             "pipeline": "vectorPipeline",
@@ -232,12 +260,31 @@ def hybrid_search_with_transcripts(
         doc_id = str(doc["_id"])
         rrf_contribution = text_weight * (1 / (60 + rank))
         rrf_scores[doc_id]["score"] += rrf_contribution
+        doc['des'] = doc['frame_description']
+        doc['ts'] = doc['frame_timestamp']
         if rrf_scores[doc_id]["doc"] is None:
             rrf_scores[doc_id]["doc"] = doc
         rrf_scores[doc_id]["details"].append({
             "pipeline": "textPipeline",
             "rank": rank,
             "weight": text_weight,
+            "contribution": rrf_contribution,
+            "original_score": doc.get("text_score", 0),
+        })
+
+    # Process text results
+    for rank, doc in enumerate(transcript_vector_result, start=1):
+        doc_id = str(doc["_id"])
+        rrf_contribution = transcript_weight * (1 / (60 + rank))
+        rrf_scores[doc_id]["score"] += rrf_contribution
+        doc['des'] = doc['text']
+        doc['ts'] = doc['t_start']
+        if rrf_scores[doc_id]["doc"] is None:
+            rrf_scores[doc_id]["doc"] = doc
+        rrf_scores[doc_id]["details"].append({
+            "pipeline": "textPipeline",
+            "rank": rank,
+            "weight": transcript_weight,
             "contribution": rrf_contribution,
             "original_score": doc.get("text_score", 0),
         })
@@ -249,47 +296,10 @@ def hybrid_search_with_transcripts(
         reverse=True
     )[:top_n]
 
-    # Format results and add transcript data
-    final_results = []
-    for item in sorted_results:
-        doc = item["doc"].copy()
-        doc["rrf_score"] = item["score"]
-        doc["score_details"] = item["details"]
+    print(f"Found {len(sorted_results)} results for query: '{user_query}'")
 
-        # Remove internal scores
-        doc.pop("vector_score", None)
-        doc.pop("text_score", None)
-        doc.pop("_id", None)
-
-        # Add transcript data using lookup
-        doc_id = item["doc"]["_id"]
-        transcript_lookup_pipeline = [
-            {"$match": {"_id": doc_id}},
-            {"$lookup": {
-                "from": TRANSCRIPT_COLL,
-                "localField": "transcript_ids",
-                "foreignField": "_id",
-                "as": "transcript_data"
-            }},
-            {"$project": {"transcript_data": 1}}
-        ]
-
-        try:
-            transcript_result = list(collection.aggregate(transcript_lookup_pipeline))
-            if transcript_result:
-                doc["transcript_data"] = transcript_result[0].get("transcript_data", [])
-            else:
-                doc["transcript_data"] = []
-        except Exception as e:
-            print(f"Error fetching transcript data: {e}")
-            doc["transcript_data"] = []
-
-        final_results.append(doc)
-
-    print(f"Found {len(final_results)} results for query: '{user_query}'")
-    print(f"Vector results: {len(vector_results)}, Text results: {len(text_results)}")
-
-    return final_results
+    res = [{'des':item['doc']['des'], 'ts':item['doc']['ts'], 'video':item['doc']['video_id']} for item in sorted_results]
+    return res
 
 
 # Interactive Semantic Search
@@ -335,6 +345,19 @@ def display_search_results(results, search_type, top_n=3, show_transcripts=False
 
 
 if __name__ == "__main__":
+
+    merged_hybrid_results = hybrid_search_with_transcripts(
+        user_query="blue jersey",
+        top_n=5,
+        vector_weight=0.7,
+        text_weight=0.3,
+        transcript_weight=0.3,
+        search_type="text",
+    )
+
+    print(merged_hybrid_results)
+
+    exit()
     while True:
         try:
             # Get user input
@@ -353,9 +376,9 @@ if __name__ == "__main__":
             print(f"\n--- Searching for: '{user_query}' ---")
 
             # Ask user if they want to include transcript data
-            include_transcripts = input("Include transcript data in results? (y/n): ").strip().lower()
+            # include_transcripts = input("Include transcript data in results? (y/n): ").strip().lower()
             # show_transcripts = include_transcripts in ['y', 'yes']
-            show_transcripts ='y'
+            show_transcripts = 'y'
 
             # Test with scalar quantization (faster, less precise)
             print("Searching with scalar quantization...")
@@ -377,6 +400,7 @@ if __name__ == "__main__":
 
             # Test with manual hybrid search (combines vector + text search)
             # print("Searching with manual hybrid search (70% vector, 30% text)...")
+            hybrid_results = []
             # hybrid_results = manual_hybrid_search(
             #     user_query=user_query,
             #     collection=db[FRAME_INTELLIGENCE_METADATA],
@@ -390,6 +414,7 @@ if __name__ == "__main__":
 
             # NEW: Test with merged collection (includes transcript data)
             if show_transcripts:
+                merged_semantic_results = []
                 # print("Searching merged collection with transcript data...")
                 # merged_semantic_results = semantic_search_with_transcripts(
                 #     user_query=user_query,
@@ -401,12 +426,10 @@ if __name__ == "__main__":
                 print("Searching merged collection with hybrid search + transcripts...")
                 merged_hybrid_results = hybrid_search_with_transcripts(
                     user_query=user_query,
-                    collection=db[VIDEO_INTELLIGENCE_TRANSCRIPTS],
                     top_n=5,
-                    vector_search_index_name="vector_search_index_scalar",
-                    text_search_index_name="text_search_index",
                     vector_weight=0.7,
                     text_weight=0.3,
+                    transcript_weight=0.3,
                     search_type="text",
                 )
 
@@ -417,7 +440,8 @@ if __name__ == "__main__":
 
             # Display merged collection results if transcripts were requested
             if show_transcripts:
-                display_search_results(merged_semantic_results, "Merged Collection - Semantic Search", 5, show_transcripts)
+                display_search_results(merged_semantic_results, "Merged Collection - Semantic Search", 5,
+                                       show_transcripts)
                 display_search_results(merged_hybrid_results, "Merged Collection - Hybrid Search", 5, show_transcripts)
 
             # Ask if user wants to see more details
@@ -516,5 +540,3 @@ if __name__ == "__main__":
     print("   - Merged collection search with transcript data")
     print("   - Semantic and hybrid search on video frames + transcripts")
     print("   - Detailed transcript display with timestamps")
-
-
