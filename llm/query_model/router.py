@@ -1,6 +1,6 @@
 import os, json, requests
-
-FIREWORKS_API_KEY = os.environ["FIREWORKS_1"]
+FIREWORKS_1 = "fw_3ZYWGYXM8p1Z4GQTZScCJCXy"
+FIREWORKS_API_KEY = "fw_3ZYWGYXM8p1Z4GQTZScCJCXy"
 MODEL = "accounts/fireworks/models/deepseek-v3p1-terminus"
 URL = "https://api.fireworks.ai/inference/v1/chat/completions"
 
