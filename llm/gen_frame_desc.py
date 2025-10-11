@@ -1,7 +1,7 @@
 from typing import Optional
 import os
 
-from encode_image_to_64 import encode_image_to_base64
+from llm.encode_image_to_64 import encode_image_to_base64
 from dotenv import load_dotenv
 from openai import OpenAI
 
@@ -12,7 +12,7 @@ from typing import Optional
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
-from encode_image_to_64 import encode_image_to_base64
+from llm.encode_image_to_64 import encode_image_to_base64
 
 load_dotenv()
 

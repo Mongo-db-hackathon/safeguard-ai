@@ -1,6 +1,6 @@
 # Implementing hybrid search with RankFusion and manual RRF fallback
-from mongo_client_1 import FRAME_INTELLIGENCE_METADATA, db
-from get_voyage_embed import get_voyage_embedding
+from llm.mongo_client_1 import FRAME_INTELLIGENCE_METADATA, db
+from llm.get_voyage_embed import get_voyage_embedding
 from collections import defaultdict
 
 

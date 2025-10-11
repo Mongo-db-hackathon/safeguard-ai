@@ -1,29 +1,21 @@
 from transcripts.audio import ingest_transcripts
-from video_to_image import video_to_images
 import voyageai
 from openai import OpenAI
 from dotenv import load_dotenv
 import pandas as pd
 
 load_dotenv()
-from gen_frame_desc import generate_frame_description
-from encode_image_to_64 import encode_image_to_base64
-from get_voyage_embed import get_voyage_embedding
-from process_frames import process_frames_to_embeddings_with_descriptions
+from llm.process_frames import process_frames_to_embeddings_with_descriptions
 import os
 
 # Import mongo client functions
-from mongo_client_1 import create_collections, db, FRAME_INTELLIGENCE_METADATA, TRANSCRIPT_COLL, \
+from llm.mongo_client_1 import create_collections, db, FRAME_INTELLIGENCE_METADATA, TRANSCRIPT_COLL, \
     create_vector_search_index, create_text_search_index, insert_frame_data_to_mongo, insert_video_metadata
 
 # Import retrieval functions
-from get_voyage_embed import get_voyage_embedding
-from retreival_2 import manual_hybrid_search
 
 # Import train.py functions for merged collection
-from train import create_merged_collection, VIDEO_INTELLIGENCE_TRANSCRIPTS
-
-
+from llm.train import create_merged_collection, VIDEO_INTELLIGENCE_TRANSCRIPTS
 
 
 def work(video_path):
@@ -82,6 +74,8 @@ VECTOR_INDEX_FRAMES_SCALAR = "vector_search_index_frames_scalar"
 VECTOR_INDEX_FRAMES_FULL = "vector_search_index_frames_full_fidelity"
 VECTOR_INDEX_TRANSCRIPT_SCALAR = "vector_search_transcript_index_scalar1"
 VECTOR_INDEX_TRANSCRIPT_FULL = "vector_search_transcript_index_full_fidelity1"
+
+
 def create_search_incides():
     # 2. Create vector search indexes
 
@@ -110,7 +104,6 @@ def create_search_incides():
         embedding_path="frame_embedding",
     )
 
-
     # 3) create scalar-quantized index on frame_embedding (fast, smaller)
     create_vector_search_index(
         collection=transcript_coll,  # or frames_coll if that’s where you search
@@ -131,23 +124,23 @@ def create_search_incides():
     )
 
     # PyMongo
-    db.command({
-        "createSearchIndexes": VIDEO_INTELLIGENCE_TRANSCRIPTS,  # collection name
-        "indexes": [{
-            "name": "frame_intelligence_index",  # text_search_index_name
-            "definition": {
-                "mappings": {
-                    "dynamic": True,
-                    "fields": {
-                        "frame_description": {"type": "string", "analyzer": "lucene.standard"},
-                        "frame_number": {"type": "number"},
-                        "frame_timestamp": {"type": "number"},
-                        "video_id": {"type": "string"}  # include if you filter/sort by it
-                    }
-                }
-            }
-        }]
-    })
+    # db.command({
+    #     "createSearchIndexes": VIDEO_INTELLIGENCE_TRANSCRIPTS,  # collection name
+    #     "indexes": [{
+    #         "name": "frame_intelligence_index",  # text_search_index_name
+    #         "definition": {
+    #             "mappings": {
+    #                 "dynamic": True,
+    #                 "fields": {
+    #                     "frame_description": {"type": "string", "analyzer": "lucene.standard"},
+    #                     "frame_number": {"type": "number"},
+    #                     "frame_timestamp": {"type": "number"},
+    #                     "video_id": {"type": "string"}  # include if you filter/sort by it
+    #                 }
+    #             }
+    #         }
+    #     }]
+    # })
 
     # print("Creating vector search indexes...")
     # create_vector_search_index(

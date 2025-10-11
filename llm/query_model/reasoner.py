@@ -1,5 +1,8 @@
 import os, json, requests
-from .router import route_query as router_model_call
+from pprint import pprint
+
+from llm.inference import hybrid_search_with_transcripts
+from llm.query_model.router import route_query as router_model_call
 
 FIREWORKS_1 = "fw_3ZYWGYXM8p1Z4GQTZScCJCXy"
 FIREWORKS_API_KEY = "fw_3ZYWGYXM8p1Z4GQTZScCJCXy"
@@ -84,12 +87,27 @@ def reasoner_query(q: str, frames_data, transcript_data, video_id=None, video_na
 if __name__ == "__main__":
     q = "Was there a guy in a blue jersey?"
     print(reasoner_query(q, [""" **People**: 
-  - One player is wearing a light blue jersey with the number "2" visible, black shorts, and red cleats. This player appears to be attempting to control or intercept the ball.
-  - The other player is wearing a white jersey with the number "19" and a star logo, white shorts, and white socks with black stripes. This player is standing near the ball, seemingly in a defensive or neutral stance.
-- **Actions**: The player in blue is leaning forward, focusing on the ball, while the player in white is standing upright, observing the situation.
-- **Setting**: The scene is on a well-maintained soccer field with visible white boundary lines.
-- **Visible Text**: 
-  - "SPORTZONE" is displayed in the top right corner.
-  - The word "HUMILIATING" is prominently displayed in bold, yellow text with a black outline in the center of the frame.
+          - One player is wearing a light blue jersey with the number "2" visible, black shorts, and red cleats. This player appears to be attempting to control or intercept the ball.
+          - The other player is wearing a white jersey with the number "19" and a star logo, white shorts, and white socks with black stripes. This player is standing near the ball, seemingly in a defensive or neutral stance.
+        - **Actions**: The player in blue is leaning forward, focusing on the ball, while the player in white is standing upright, observing the situation.
+        - **Setting**: The scene is on a well-maintained soccer field with visible white boundary lines.
+        - **Visible Text**: 
+          - "SPORTZONE" is displayed in the top right corner.
+          - The word "HUMILIATING" is prominently displayed in bold, yellow text with a black outline in the center of the frame.
+        
+        The overall context suggests a moment of tension or a critical play in the match."""], [""], "vid_001", "Sample Video"))
 
-The overall context suggests a moment of tension or a critical play in the match."""], [""], "vid_001", "Sample Video"))
+    q = "blue jersey"
+    merged_hybrid_results = hybrid_search_with_transcripts(
+        user_query="blue jersey",
+        top_n=5,
+        vector_weight=0.7,
+        text_weight=0.3,
+        transcript_weight=0.3,
+        search_type="text",
+    )
+
+    pprint(merged_hybrid_results)
+
+    print(reasoner_query(q, merged_hybrid_results))
+

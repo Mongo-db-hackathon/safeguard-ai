@@ -2,8 +2,8 @@ from typing import Dict, Optional
 import os
 from pathlib import Path
 import time
-from get_voyage_embed import get_voyage_embedding
-from gen_frame_desc import generate_frame_description
+from llm.get_voyage_embed import get_voyage_embedding
+from llm.gen_frame_desc import generate_frame_description
 from PIL import Image
 
 

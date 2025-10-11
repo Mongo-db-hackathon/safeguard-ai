@@ -1,7 +1,7 @@
 import pymongo
 import os
 from dotenv import load_dotenv
-from mongo_client_1 import db, FRAME_INTELLIGENCE_METADATA, TRANSCRIPT_COLL, VIDEO_INTELLIGENCE_TRANSCRIPTS
+from llm.mongo_client_1 import db, FRAME_INTELLIGENCE_METADATA, TRANSCRIPT_COLL, VIDEO_INTELLIGENCE_TRANSCRIPTS
 
 load_dotenv()
 
