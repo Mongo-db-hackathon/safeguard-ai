@@ -32,24 +32,11 @@ body, html, #root {
 
 .chat {
   width: 30%;
-  background: #faf9f9;
+  background: #fafafa;
   border-right: 1px solid #ddd;
   display: flex;
   flex-direction: column;
-  padding: 15px; 
-}
-
-.chat-title {
-  font-weight: bold;
-  background: #393939;
-  color: #fff;
-  padding: 20px;
-  text-align: left;
-  width: 100%;
-  box-sizing: border-box;
-  margin: 0;
-  border-bottom: 1px solid #444;
-  margin-bottom: 10px;
+  padding: 15px;
 }
 
 .chat-messages {
@@ -57,15 +44,29 @@ body, html, #root {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  scrollbar-width: none; /* Firefox */
+  scrollbar-width: none;
 }
 
 .chat-messages::-webkit-scrollbar {
-  width: 0px;
-  height: 0px;
+  width: 0;
 }
 
-.chat-bubble {
+/* Bot message now full width, no bubble */
+.chat-bubble.bot {
+  background: none;
+  color: #000;
+  align-self: stretch;
+  padding: 10px 0;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  font-size: 15px;
+}
+
+/* User message (black bubble) */
+.chat-bubble.user {
+  background-color: #393939;
+  color: white;
+  align-self: flex-end;
   padding: 10px 14px;
   border-radius: 12px;
   margin-bottom: 10px;
@@ -73,23 +74,8 @@ body, html, #root {
   word-wrap: break-word;
 }
 
-/* 🤖 Bot messages (left) */
-.chat-bubble.bot {
-  background-color: #e5e5e5;
-  color: #000;
-  align-self: flex-start;
-}
-
-/* 🙋 User messages (right) */
-.chat-bubble.user {
-  background-color: #393939;
-  color: white;
-  align-self: flex-end;
-}
-
-/* Typing indicator */
 .chat-bubble.typing {
-  background-color: transparent;
+  background: transparent;
   box-shadow: none;
   align-self: flex-start;
 }
@@ -127,61 +113,49 @@ body, html, #root {
 }
 
 .chat-input input:focus {
-  border-color: #959595;
-  box-shadow: 0 0 0 1px #bdbdbd;
+  border-color: #000;
+  box-shadow: 0 0 0 1px #000;
 }
 
-.send {
-  padding: 8px 12px;
-  font-size: 16px;
-  cursor: pointer;
-}
-
-.video {
-  flex: 1;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-}
-
-.video h3 {
-  margin-top: 12px;
-}
-
-/* Remove chat bubble gray from video cards */
 .video-card-wrapper {
   align-self: flex-start;
-  margin-bottom: 10px;
+  margin-bottom: 20px;
+  width: 95%; 
 }
 
 .video-card {
   border: 1px solid #ccc;
   border-radius: 12px;
   overflow: hidden;
-  width: 200px;
+  width: 100%; 
   text-align: center;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   background: white;
 }
 
 .video-card-title {
-  padding: 8px 0px;
+  padding: 20px 10px;
   font-weight: bold;
   color: black;
   background: white;
+  font-family: inherit; /* ✅ Ensure consistent font */
 }
 
 .video-card-button {
   width: 100%;
-  background-color: black;
-  color: white;
+  background-color: #d3d3d3;
+  color: black;
   padding: 12px 0;
   border: none;
   cursor: pointer;
   font-weight: normal;
   transition: background 0.2s ease;
+  border-top: 1px solid #bbbbbb;
+  font-family: inherit; /* ✅ This fixes the Watch Now font mismatch */
 }
 
+
 .video-card-button:hover {
-  background-color: #333;
+  background-color: #000;
+  color: #fff;
 }
