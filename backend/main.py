@@ -25,27 +25,34 @@ class ChatRequest(BaseModel):
     message: str
 
 class VideoResult(BaseModel):
-    path: str  # just the filename (or /videos/video.mp4)
+    path: str
     timestamp: int
 
 class ChatResponse(BaseModel):
     reply: str
     videos: list[VideoResult]
 
+
 @app.post("/api/chat", response_model=ChatResponse)
 async def handle_chat(req: ChatRequest):
     print(f"💬 Message from frontend: {req.message}")
+    await asyncio.sleep(3)  # simulate processing time
 
-    await asyncio.sleep(3)
-
-    # Just send back relative paths to avoid file:// issues
-    videos = [
-        {"path": "video.mp4", "timestamp": 12},
-        {"path": "video.mp4", "timestamp": 37},
-        {"path": "video.mp4", "timestamp": 8},
+    # ✅ Dynamically fetch .mp4 videos from folder
+    all_files = [
+        f for f in os.listdir(VIDEO_FOLDER)
+        if f.lower().endswith(".mp4")
     ]
 
+    # Just simulate timestamps for now
+    videos = [
+        {"path": file, "timestamp": (i + 1) * 10}
+        for i, file in enumerate(all_files)
+    ]
+
+    reply = f"{len(videos)} relevant video clip(s) found:" if videos else "No videos found."
+
     return {
-        "reply": "Here are 3 relevant video clips I found:",
+        "reply": reply,
         "videos": videos,
     }
