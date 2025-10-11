@@ -9,11 +9,12 @@ load_dotenv()
 # Collection names
 
 
-def create_merged_collection():
+def create_merged_collection(video_id=None):
     """
     Create a new collection that merges video_intelligence with transcripts
     based on timestamp mapping (30-second intervals) - EFFICIENT VERSION
     Stores only transcript IDs instead of duplicating transcript data
+    Adds video_id to each merged document.
     """
 
     # Get the collections
@@ -59,20 +60,14 @@ def create_merged_collection():
 
     print(f"Created time range mapping: {list(transcript_time_mapping.keys())}")
 
-    # Process each video frame and merge with corresponding transcript IDs
-    merged_documents = []
-
+    # Insert merged documents with video_id
     for frame in video_frames:
-        frame_timestamp = frame.get('frame_timestamp', 0)
+        frame_time = frame.get('frame_timestamp', 0)
 
         # Determine which time range this frame belongs to
-        time_range_start = int(frame_timestamp // 30) * 30
-        time_range_end = time_range_start + 30
-        time_range_key = f"{time_range_start}-{time_range_end}"
+        time_range = int(frame_time // 30) * 30
+        time_range_key = f"{time_range}-{time_range+30}"
 
-        # Get matching transcript IDs for this time range
-        matching_transcript_ids = transcript_time_mapping.get(time_range_key, None)
-        
         # Create the merged document - EFFICIENT VERSION
         merged_doc = {
             # Video intelligence fields
@@ -80,45 +75,20 @@ def create_merged_collection():
             'frame_embedding': frame.get('embedding', []),
             'frame_description': frame.get('frame_description', ''),
             'frame_number': frame.get('frame_number', 0),
-            'frame_timestamp': frame_timestamp,
+            'frame_timestamp': frame_time,
 
             # Transcript reference - only store IDs!
-            'transcript_ids': matching_transcript_ids,  # Array of ObjectIds
+            'transcript_ids': transcript_time_mapping.get(time_range_key),  # Array of ObjectIds
 
             # Metadata
             'time_range': time_range_key,
+            'video_id': video_id
             # 'transcript_count': len(matching_transcript_ids)
         }
 
-        merged_documents.append(merged_doc)
+        merged_collection.insert_one(merged_doc)
 
-    # Insert all merged documents
-    if merged_documents:
-        result = merged_collection.insert_many(merged_documents)
-        print(f"Successfully inserted {len(result.inserted_ids)} merged documents")
-
-        # Print some statistics
-        total_frames = len(merged_documents)
-        frames_with_transcripts = sum(1 for doc in merged_documents )
-
-        print(f"\n=== Merge Statistics (Efficient Version) ===")
-        print(f"Total frames processed: {total_frames}")
-        print(f"Frames with matching transcripts: {frames_with_transcripts}")
-        print(f"Frames without transcripts: {total_frames - frames_with_transcripts}")
-        print(f"Collection name: {VIDEO_INTELLIGENCE_TRANSCRIPTS}")
-        print(f"Storage efficiency: Only transcript IDs stored, no data duplication!")
-
-        # Show sample of merged data
-        print(f"\n=== Sample Merged Document ===")
-        sample_doc = merged_collection.find_one()
-        if sample_doc:
-            print(f"Frame timestamp: {sample_doc.get('frame_timestamp')}")
-            print(f"Time range: {sample_doc.get('time_range')}")
-            # print(f"Transcript count: {sample_doc.get('transcript_count')}")
-            print(f"Transcript IDs: {sample_doc.get('transcript_ids', [])}")
-            print(f"Frame description: {sample_doc.get('frame_description', '')[:100]}...")
-    else:
-        print("No documents to insert")
+    print(f"Inserted merged documents with video_id: {video_id}")
 
 
 def query_merged_collection(frame_timestamp=None, time_range=None, limit=5):

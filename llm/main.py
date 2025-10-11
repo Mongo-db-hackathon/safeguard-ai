@@ -1,3 +1,4 @@
+from transcripts.audio import ingest_transcripts
 from video_to_image import video_to_images
 import voyageai
 from openai import OpenAI
@@ -12,7 +13,7 @@ import os
 
 # Import mongo client functions
 from mongo_client_1 import create_collections, db, FRAME_INTELLIGENCE_METADATA, TRANSCRIPT_COLL, \
-    create_vector_search_index, create_text_search_index, insert_frame_data_to_mongo
+    create_vector_search_index, create_text_search_index, insert_frame_data_to_mongo, insert_video_metadata
 
 # Import retrieval functions
 from get_voyage_embed import get_voyage_embedding
@@ -20,12 +21,16 @@ from retreival_2 import manual_hybrid_search
 
 # Import train.py functions for merged collection
 from train import create_merged_collection, VIDEO_INTELLIGENCE_TRANSCRIPTS
-video_title = "video"
+video_path = "videos/video.mp4"
+video_title = os.path.splitext(os.path.basename(video_path))[0]
 
+# Insert video metadata and get video_id
+video_id = insert_video_metadata(video_title, video_path)
+print(f"Inserted video metadata. Video ID: {video_id}")
 
 # # Convert the video to images
 # video_to_images(
-#     video_path=f"videos/{video_title}.mp4", output_dir="frames", interval_seconds=2
+#     video_path=video_path, output_dir="frames", interval_seconds=2
 # )
 
 voyageai_client = voyageai.Client()
@@ -50,6 +55,29 @@ print("\n=== Setting up MongoDB ===")
 # 1. Create collections (this will also establish connection)
 print("Creating MongoDB collections...")
 create_collections()
+
+
+# 4. Insert frame data into MongoDB with video_id
+print("Inserting frame data into MongoDB...")
+frame_intelligence_collection = insert_frame_data_to_mongo(frame_data_df, video_id=video_id)
+
+
+
+ingest_transcripts(video_path, video_id)
+print(f"Ingested transcripts for video ID: {video_path}")
+
+print("\n=== MongoDB setup complete! ===")
+print(f"Total frames processed and stored: {len(frame_data_df)}")
+print(f"Collection name: {FRAME_INTELLIGENCE_METADATA}")
+
+
+# Create merged collection with transcripts
+print("\n=== Creating Merged Collection with Transcripts ===")
+create_merged_collection()
+merged_collection = db[VIDEO_INTELLIGENCE_TRANSCRIPTS]
+print(f"Merged collection created: {VIDEO_INTELLIGENCE_TRANSCRIPTS}")
+
+
 
 # 2. Create vector search indexes
 print("Creating vector search indexes...")
@@ -82,6 +110,9 @@ frame_intelligence_index_definition = {
             "frame_timestamp": {
                 "type": "date",
             },
+            "video_id": {
+                "type": "string",
+            },
         },
     }
 }
@@ -91,23 +122,4 @@ create_text_search_index(
     frame_intelligence_index_definition,
     "frame_intelligence_index",
 )
-
-# 4. Insert frame data into MongoDB
-print("Inserting frame data into MongoDB...")
-frame_intelligence_collection = insert_frame_data_to_mongo(frame_data_df)
-
-
-
-print("\n=== MongoDB setup complete! ===")
-print(f"Total frames processed and stored: {len(frame_data_df)}")
-print(f"Collection name: {FRAME_INTELLIGENCE_METADATA}")
-
-
-# Create merged collection with transcripts
-print("\n=== Creating Merged Collection with Transcripts ===")
-create_merged_collection()
-merged_collection = db[VIDEO_INTELLIGENCE_TRANSCRIPTS]
-print(f"Merged collection created: {VIDEO_INTELLIGENCE_TRANSCRIPTS}")
-
-
 

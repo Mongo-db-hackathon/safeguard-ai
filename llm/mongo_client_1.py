@@ -3,6 +3,10 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
+from pymongo.operations import SearchIndexModel
+import time
+
+
 
 
 def get_mongo_client(mongo_uri):
@@ -66,8 +70,54 @@ def create_collections():
 
 
 # Create Indexes
-from pymongo.operations import SearchIndexModel
-import time
+
+def create_text_search_index(collection, index_definition, index_name):
+    """
+    Create a search index for a MongoDB Atlas collection.
+
+    Args:
+    collection: MongoDB collection object
+    index_definition: Dictionary defining the index mappings
+    index_name: String name for the index
+
+    Returns:
+    str: Result of the index creation operation
+    """
+
+    try:
+        search_index_model = SearchIndexModel(
+            definition=index_definition, name=index_name
+        )
+
+        result = collection.create_search_index(model=search_index_model)
+        print(f"Search index '{index_name}' created successfully")
+        return result
+    except Exception as e:
+        print(f"Error creating search index: {e!s}")
+        return None
+
+
+def insert_video_metadata(video_name, video_path):
+    """Insert video metadata into VIDEO_LIBRARY and return the video_id."""
+    video_doc = {"video_name": video_name, "video_path": video_path}
+    result = db[VIDEO_LIBRARY].insert_one(video_doc)
+    return result.inserted_id
+
+
+# Update insert_frame_data_to_mongo to accept video_id and add it to each frame
+
+def insert_frame_data_to_mongo(frame_data_df, video_id=None):
+    """Insert frame data into FRAME_INTELLIGENCE_METADATA collection, with video_id."""
+    collection = db[FRAME_INTELLIGENCE_METADATA]
+    frame_docs = []
+    for idx, row in frame_data_df.iterrows():
+        doc = row.to_dict()
+        if video_id is not None:
+            doc["video_id"] = video_id
+        frame_docs.append(doc)
+    if frame_docs:
+        collection.insert_many(frame_docs)
+    return collection
 
 
 # Create vector search index if it doesn't exist
@@ -139,67 +189,6 @@ def create_vector_search_index(
     print(f"{result} is ready for querying.")
 
 
-create_vector_search_index(
-    db[FRAME_INTELLIGENCE_METADATA], "vector_search_index_scalar", quantization="scalar"
-)
-create_vector_search_index(
-    db[FRAME_INTELLIGENCE_METADATA],
-    "vector_search_index_full_fidelity",
-    quantization="full_fidelity",
-)
-create_vector_search_index(
-    db[FRAME_INTELLIGENCE_METADATA],
-    "vector_search_index_binary",
-    quantization="binary",
-)
-create_vector_search_index(
-    db[PREVIOUS_FRAME_INCIDENTS], "incident_vector_index_scalar", quantization="scalar"
-)
-create_vector_search_index(
-    db[VIDEO_LIBRARY], "video_vector_index", quantization="full_fidelity"
-)
-
-
-def create_text_search_index(collection, index_definition, index_name):
-    """
-    Create a search index for a MongoDB Atlas collection.
-
-    Args:
-    collection: MongoDB collection object
-    index_definition: Dictionary defining the index mappings
-    index_name: String name for the index
-
-    Returns:
-    str: Result of the index creation operation
-    """
-
-    try:
-        search_index_model = SearchIndexModel(
-            definition=index_definition, name=index_name
-        )
-
-        result = collection.create_search_index(model=search_index_model)
-        print(f"Search index '{index_name}' created successfully")
-        return result
-    except Exception as e:
-        print(f"Error creating search index: {e!s}")
-        return None
-
-
-def insert_frame_data_to_mongo(frame_data_df):
-    """Insert frame data DataFrame into MongoDB collection"""
-    frame_intelligence_documents = frame_data_df.to_dict(orient="records")
-
-    # Create a new collection for frame intelligence
-    frame_intelligence_collection = db[FRAME_INTELLIGENCE_METADATA]
-
-    # Insert the frame intelligence documents into the collection
-    frame_intelligence_collection.insert_many(frame_intelligence_documents)
-
-    print(f"Inserted {len(frame_intelligence_documents)} documents into {FRAME_INTELLIGENCE_METADATA}")
-    print(f"Total documents in collection: {frame_intelligence_collection.count_documents({})}")
-
-    return frame_intelligence_collection
 
 
 if __name__ == "__main__":
@@ -241,3 +230,25 @@ if __name__ == "__main__":
     db[VIDEO_LIBRARY].delete_many({})
 
     print(create_collections())
+
+    create_vector_search_index(
+        db[FRAME_INTELLIGENCE_METADATA], "vector_search_index_scalar", quantization="scalar"
+    )
+    create_vector_search_index(
+        db[FRAME_INTELLIGENCE_METADATA],
+        "vector_search_index_full_fidelity",
+        quantization="full_fidelity",
+    )
+    create_vector_search_index(
+        db[FRAME_INTELLIGENCE_METADATA],
+        "vector_search_index_binary",
+        quantization="binary",
+    )
+    create_vector_search_index(
+        db[PREVIOUS_FRAME_INCIDENTS], "incident_vector_index_scalar", quantization="scalar"
+    )
+    create_vector_search_index(
+        db[VIDEO_LIBRARY], "video_vector_index", quantization="full_fidelity"
+    )
+
+

@@ -1,5 +1,6 @@
 import os, requests, sys
 from pymongo import MongoClient
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from llm.mongo_client_1 import FRAME_INTELLIGENCE_METADATA, db, TRANSCRIPT_COLL
@@ -10,7 +11,7 @@ EMBED_PROVIDER = os.getenv("EMBED_PROVIDER", "voyage").lower()  # "fireworks" or
 
 # keys
 FIREWORKS_API_KEY = os.getenv("FIREWORKS_1", "")
-VOYAGE_API_KEY     = os.getenv("VOYAGE_API_KEY", "")
+VOYAGE_API_KEY = os.getenv("VOYAGE_API_KEY", "")
 
 # fireworks endpoints and models
 ASR_URL = "https://audio-prod.us-virginia-1.direct.fireworks.ai/v1/audio/transcriptions"
@@ -25,10 +26,10 @@ VOYAGE_EMBED_MODEL = os.getenv("VOYAGE_EMBED_MODEL", "voyage-3")
 
 # mongo
 
-
+import os
+from typing import List, Dict
 
 tx_col = db[TRANSCRIPT_COLL]
-
 
 
 def transcribe_with_fireworks(file_path: str):
@@ -54,6 +55,7 @@ def transcribe_with_fireworks(file_path: str):
             raise RuntimeError(f"ASR failed {r.status_code}: {r.text}")
         return r.json().get("segments", []) or []
 
+
 def _embed_fireworks(text: str):
     if not FIREWORKS_API_KEY:
         raise RuntimeError("FIREWORKS_API_KEY missing")
@@ -66,6 +68,7 @@ def _embed_fireworks(text: str):
     if r.status_code != 200:
         raise RuntimeError(f"FW embed failed {r.status_code}: {r.text}")
     return r.json()["data"][0]["embedding"]
+
 
 def _embed_voyage(text: str):
     if not VOYAGE_API_KEY:
@@ -80,13 +83,14 @@ def _embed_voyage(text: str):
         raise RuntimeError(f"Voyage embed failed {r.status_code}: {r.text}")
     return r.json()["data"][0]["embedding"]
 
+
 def embed_text(text: str):
     return _embed_fireworks(text) if EMBED_PROVIDER == "fireworks" else _embed_voyage(text)
 
-import os
-from typing import List, Dict
 
-def ingest_transcripts(video_path: str) -> int:
+
+
+def ingest_transcripts(video_path: str, video_id=None) -> int:
     segs = transcribe_with_fireworks(video_path)
     # Normalize shape just in case
     if isinstance(segs, dict) and "segments" in segs:
@@ -104,7 +108,7 @@ def ingest_transcripts(video_path: str) -> int:
 
         # timestamps in seconds from start
         start = float(s.get("start", s.get("audio_start", 0.0)))
-        end   = float(s.get("end",   s.get("audio_end",   start)))
+        end = float(s.get("end", s.get("audio_end", start)))
 
         # embed with Voyage
         vec = embed_text(text)  # uses your function
@@ -116,7 +120,8 @@ def ingest_transcripts(video_path: str) -> int:
         docs.append({
             "t_start": int(start),
             "text": text,
-            "text_embedding": vec
+            "text_embedding": vec,
+            "video_id": video_id
         })
 
     if not docs:
@@ -126,7 +131,20 @@ def ingest_transcripts(video_path: str) -> int:
     return len(res.inserted_ids)
 
 
+def insert_transcript_segments(segments, video_id=None):
+    """Insert transcript segments into TRANSCRIPT_COLL, with video_id."""
+    docs = []
+    for seg in segments:
+        doc = dict(seg)
+        if video_id is not None:
+            doc["video_id"] = video_id
+        docs.append(doc)
+    if docs:
+        tx_col.insert_many(docs)
+    return docs
 
-VIDEO_PATH = "videos/video.mp4"  # or pass-through from your existing var
-n_tx = ingest_transcripts(VIDEO_PATH)
-print(f"inserted transcript segments: {n_tx}")
+
+if __name__ == "__main__":
+    VIDEO_PATH = "videos/video.mp4"  # or pass-through from your existing var
+    n_tx = ingest_transcripts(VIDEO_PATH)
+    print(f"inserted transcript segments: {n_tx}")
