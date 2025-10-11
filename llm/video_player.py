@@ -198,7 +198,7 @@ def create_video_player_with_scenes(
         print("⚠️  Large video file - serving from local path")
 
 # Example usage
-video_path = "videos/video.mp4"  # Replace with your actual video path
+video_path = "../videos/video.mp4"  # Replace with your actual video path
 
 print("🎬 Creating interactive video player...")
 create_video_player_with_scenes(
