@@ -24,13 +24,6 @@ body, html, #root {
   font-weight: bold;
 }
 
-.sign-in {
-  background: none;
-  border: 1px solid #ccc;
-  padding: 6px 12px;
-  cursor: pointer;
-}
-
 .main {
   display: flex;
   flex: 1;
@@ -39,72 +32,39 @@ body, html, #root {
 
 .chat {
   width: 30%;
-  background: #f9f9f9;
+  background: #faf9f9;
   border-right: 1px solid #ddd;
-  padding: 16px;
   display: flex;
   flex-direction: column;
+  padding: 15px; 
 }
 
 .chat-title {
   font-weight: bold;
-  margin-bottom: 12px;
+  background: #393939;
+  color: #fff;
+  padding: 20px;
+  text-align: left;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  border-bottom: 1px solid #444;
+  margin-bottom: 10px;
 }
 
 .chat-messages {
   flex: 1;
   overflow-y: auto;
-}
-
-.chat-bubble {
-  background: #eee;
-  padding: 10px;
-  border-radius: 8px;
-  margin-bottom: 12px;
-  max-width: 80%;
-}
-
-.chat-input {
-  display: flex;
-  gap: 8px;
-  border-top: 1px solid #ccc;
-  padding-top: 10px;
-}
-
-.chat-input input {
-  flex: 1;
-  padding: 8px;
-  font-size: 14px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-.send {
-  padding: 8px 12px;
-  font-size: 16px;
-  cursor: pointer;
-}
-
-.video {
-  flex: 1;
-  padding: 24px;
   display: flex;
   flex-direction: column;
+  scrollbar-width: none; /* Firefox */
 }
 
-.video h3 {
-  margin-top: 12px;
+.chat-messages::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
 }
 
-/* Chat layout fix */
-.chat-messages {
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Common bubble style */
 .chat-bubble {
   padding: 10px 14px;
   border-radius: 12px;
@@ -122,7 +82,7 @@ body, html, #root {
 
 /* 🙋 User messages (right) */
 .chat-bubble.user {
-  background-color: #007aff;
+  background-color: #393939;
   color: white;
   align-self: flex-end;
 }
@@ -146,4 +106,82 @@ body, html, #root {
   0%, 20% { opacity: 0; }
   50% { opacity: 1; }
   100% { opacity: 0; }
+}
+
+.chat-input {
+  display: flex;
+  gap: 8px;
+  border-top: 1px solid #eaeaea;
+  padding: 20px 16px;
+  background: #f9f9f9;
+}
+
+.chat-input input {
+  flex: 1;
+  padding: 15px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.chat-input input:focus {
+  border-color: #959595;
+  box-shadow: 0 0 0 1px #bdbdbd;
+}
+
+.send {
+  padding: 8px 12px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.video {
+  flex: 1;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.video h3 {
+  margin-top: 12px;
+}
+
+/* Remove chat bubble gray from video cards */
+.video-card-wrapper {
+  align-self: flex-start;
+  margin-bottom: 10px;
+}
+
+.video-card {
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  overflow: hidden;
+  width: 200px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: white;
+}
+
+.video-card-title {
+  padding: 8px 0px;
+  font-weight: bold;
+  color: black;
+  background: white;
+}
+
+.video-card-button {
+  width: 100%;
+  background-color: black;
+  color: white;
+  padding: 12px 0;
+  border: none;
+  cursor: pointer;
+  font-weight: normal;
+  transition: background 0.2s ease;
+}
+
+.video-card-button:hover {
+  background-color: #333;
 }

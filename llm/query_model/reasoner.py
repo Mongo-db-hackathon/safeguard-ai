@@ -1,5 +1,5 @@
 import os, json, requests
-from router import route_query as router_model_call
+from .router import route_query as router_model_call
 
 FIREWORKS_1 = "fw_3ZYWGYXM8p1Z4GQTZScCJCXy"
 FIREWORKS_API_KEY = "fw_3ZYWGYXM8p1Z4GQTZScCJCXy"
@@ -7,34 +7,41 @@ MODEL = "accounts/fireworks/models/llama-v3p3-70b-instruct"
 URL = "https://api.fireworks.ai/inference/v1/chat/completions"
 
 SYSTEM_PROMPT = (
-    "You are a factual video analysis assistant. "
-    "Use ONLY the data retrieved from MongoDB collections "
-    "'video_intelligence.video_intelligence' (frames) and "
-    "'video_intelligence.video_intelligence_transcripts' (transcripts). "
-    "Summarize what happens in that evidence window clearly and concisely. "
-    "Include timestamp references like [mm:ss] when possible. "
-    "Never invent or assume details outside the data provided. "
-    "If there is no meaningful activity, say 'insufficient evidence'. "
-    "Return your response STRICTLY as JSON in this format:\n"
+    "You are a factual video analysis assistant. Use ONLY the evidence provided in the user message. "
+    "You must do three things:\n"
+    "1) Determine which video the evidence belongs to by inspecting evidence fields "
+    "(e.g., frames[].video_id, transcripts[].video_id, or any provided candidate_videos). "
+    "If multiple videos appear, pick the one with the majority of cited items; if still ambiguous, output 'unknown'.\n"
+    "2) Write a concise, factual summary of what happens, grounded ONLY in the provided evidence.\n"
+    "3) Derive timestamps ONLY from the evidence you cite. Compute a canonical_time_window as "
+    "[start,end] where start = min of cited times (frame.t_sec or transcript.t_start) and "
+    "end = max of cited times (frame.t_sec or transcript.t_end). Also return key_timestamps as a sorted "
+    "list of unique [mm:ss] strings taken from the cited items. Never invent times.\n"
+    "\n"
+    "Rules:\n"
+    "- Do not use outside knowledge. Do not speculate.\n"
+    "- If evidence is insufficient or empty, set summary to 'insufficient evidence' and return "
+    "video_id='unknown', video_name='unknown', canonical_time_window=null, key_timestamps=[].\n"
+    "- Keep the summary to 1–2 sentences. Include inline [mm:ss] references only if present in the evidence.\n"
+    "- Cite the exact item IDs you relied on (frames[].id or transcripts[].id) in the citations array.\n"
+    "\n"
+    "Return your response STRICTLY as compact JSON with this schema:\n"
     "{\n"
-    "  \"summary\": \"<one-paragraph natural-language summary for the user>\",\n"
-    "  \"video_name\": \"<video name from MongoDB or 'unknown'>\",\n"
-    "  \"citations\": [\"<frame_ids or transcript_ids used>\"]\n"
+    "  \"summary\": \"<1–2 sentence factual summary>\",\n"
+    "  \"video_id\": \"<chosen video_id or 'unknown'>\",\n"
+    "  \"video_name\": \"<chosen video_name or 'unknown'>\",\n"
+    "  \"canonical_time_window\": [<start_seconds>, <end_seconds>] or null,\n"
+    "  \"key_timestamps\": [\"mm:ss\", ...],\n"
+    "  \"citations\": [\"<ids used>\"]\n"
     "}\n"
-    "Do not output anything else."
+    "Output ONLY JSON. No additional text."
 )
 
-def reasoner_query(q: str):
-    # --- Call router model first (small LLM) ---
-    router_output = router_model_call(q)
-    print("Router output:", router_output)
-
-    # Stub data for now (replace with Mongo fetch)
-    video_id = "vid_001"
-    video_name = "Training Scenario 1"
-    frames_data = [{"id": "frame_01", "t_sec": 310.2, "caption": "Subject raises hands."}]
-    transcript_data = [{"id": "utt_02", "t_start": 309.9, "t_end": 311.5, "speaker": "Officer", "text": "Stay still."}]
-
+def reasoner_query(q: str, frames_data, transcript_data, video_id=None, video_name=None):
+    # # --- Call router model first (small LLM) ---
+    # router_output = router_model_call(q)
+    # print("Router output:", router_output)
+    
 
     payload = {
         "model": MODEL,
@@ -47,8 +54,8 @@ def reasoner_query(q: str):
                 "question": q,
                 "video_id": video_id,
                 "video_name": video_name,
-                "intent": router_output.get("intent"),
-                "time_range": router_output.get("time_range"),
+                # "intent": router_output.get("intent"), #router model (small LLM) result (Optional)
+                # "time_range": router_output.get("time_range"), #router model (small LLM) result (Optional)
                 "evidence": {
                     "frames": frames_data,         # from Mongo video_intelligence.video_intelligence
                     "transcripts": transcript_data # from Mongo video_intelligence.video_intelligence_transcripts
@@ -75,11 +82,14 @@ def reasoner_query(q: str):
     
     # Example
 if __name__ == "__main__":
-    q = "what did the subject say at 05:10?"
-    print(reasoner_query(q))
+    q = "Was there a guy in a blue jersey?"
+    print(reasoner_query(q, [""" **People**: 
+  - One player is wearing a light blue jersey with the number "2" visible, black shorts, and red cleats. This player appears to be attempting to control or intercept the ball.
+  - The other player is wearing a white jersey with the number "19" and a star logo, white shorts, and white socks with black stripes. This player is standing near the ball, seemingly in a defensive or neutral stance.
+- **Actions**: The player in blue is leaning forward, focusing on the ball, while the player in white is standing upright, observing the situation.
+- **Setting**: The scene is on a well-maintained soccer field with visible white boundary lines.
+- **Visible Text**: 
+  - "SPORTZONE" is displayed in the top right corner.
+  - The word "HUMILIATING" is prominently displayed in bold, yellow text with a black outline in the center of the frame.
 
-
-if __name__ == "__main__":
-    q = "what did the subject say at 05:10?"
-    print(reasoner_query(q))
-    # -> {"intent": "FIND_AUDIO", "time_range": [305.0, 315.0]}
+The overall context suggests a moment of tension or a critical play in the match."""], [""], "vid_001", "Sample Video"))
