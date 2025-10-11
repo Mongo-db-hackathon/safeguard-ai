@@ -31,7 +31,7 @@ openai_client = OpenAI()
 
 
 frame_data = process_frames_to_embeddings_with_descriptions(
-    frames_dir="frames", input_type="document", delay_seconds=0.5, cut_off_frame=500
+    frames_dir="llm/frames", input_type="document", delay_seconds=0.5, cut_off_frame=500
 )
 
 
